@@ -4,7 +4,7 @@ from constants import (
     META_DIR,
     RAW_DIR,
 )
-
+from lookup_sync import LookupTableSync
 
 
 if __name__ == "__main__":

@@ -1,2 +1,0 @@
-boto3==1.9.108
--e git+git://github.com/moj-analytical-services/etl_manager.git@v2.2.2#egg=etl_manager
