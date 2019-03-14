@@ -1,1 +1,0 @@
--e git+git://github.com/moj-analytical-services/etl_manager.git@v2.2.0#egg=etl_manager
