@@ -4,7 +4,7 @@ import os
 import boto3
 from etl_manager.etl import GlueJob
 
-from etl_manager.meta import read_database_folder
+from etl_manager.meta import DatabaseMeta, read_table_json
 
 
 from logger import get_logger
@@ -18,14 +18,25 @@ def get_meta_json(meta_dir, file_name):
 
 
 class LookupTableSync:
-    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, **kwargs):
+    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, repo_name, release, database_base_dir, **kwargs):
         self.s3 = boto3.resource("s3")
-        self.bucket_name = bucket_name
-        self.meta_dir = meta_dir
+        self.meta_dir = os.path.join(release, meta_dir)
         self.data_dir = data_dir
         self.raw_dir = raw_dir
-        self.db_schema = get_meta_json(self.meta_dir, "database.json")
+        self.release = release
+        
+        if os.path.isfile(os.path.join(self.meta_dir, "database.json")):
+            self.db_schema = get_meta_json(self.meta_dir, "database.json")
+        else:
+            self.db_schema = {
+                "name": repo_name,
+                "bucket": bucket_name,
+                "base_folder": database_base_dir,
+                "description": f"A lookup table deployed from {repo_name}"
+            }
+
         self.db_name = self.db_schema.get("name")
+        self.bucket_name = self.db_schema.get("bucket")
         self.meta_and_files = self.find_meta_and_data_files()
 
     @property
@@ -35,7 +46,11 @@ class LookupTableSync:
 
     @property
     def raw_path(self):
-        return f"s3://{self.bucket_name}/{self.raw_dir}/{self.db_name}"
+        return f"s3://{self.bucket_name}/{self.raw_key}"
+
+    @property
+    def raw_key(self):
+        return f"{self.raw_dir}/{self.release}/{self.db_name}"
 
     @property
     def database_path(self):
@@ -59,7 +74,7 @@ class LookupTableSync:
                 "meta_path": os.path.join(self.meta_dir, meta_path),
                 "data_path": os.path.join(self.data_dir, data_path),
                 "raw_path": f"{self.raw_path}/{data_path}",
-                "bucket_path": f"{self.raw_dir}/{self.db_name}/{data_path}"
+                "bucket_path": f"{self.raw_key}/{data_path}"
             }
         return meta_and_data
 
@@ -72,8 +87,22 @@ class LookupTableSync:
 
     def create_glue_database(self):
         """Creates glue database"""
-        db = read_database_folder(self.meta_dir)
+        # Create database based on db_schema
+        db = DatabaseMeta(**self.db_schema)
+
+        files = os.listdir(self.meta_dir)
+        files = [f for f in files if f.endswith('.json') and f != "database.json"]
+
+        for f in files:
+            table_file_path = os.path.join(self.meta_dir, f)
+            tm = read_table_json(table_file_path, database=db)
+            # Add a release column as the first file partition to every table
+            tm.add_column(name="release", type="character", "github release tag of this lookup")
+            tm.partitions = ["release"] + tm.partitions
+            db.add_table(tm)
+
         db.create_glue_database(delete_if_exists=True)
+        db.refresh_all_table_partitions()
 
     def load_data_to_glue_database(self):
         """Write csv to database bucket as parquet"""
