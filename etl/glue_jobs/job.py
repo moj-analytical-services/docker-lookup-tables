@@ -27,7 +27,7 @@ job.init("{name}_lookup".format(
 
 df = spark.read.format("csv").option("header", "true").load(args["raw_path"])
 df.write.mode('overwrite').format('parquet').save(
-    "{database_path}/{name}.parquet".format(
+    "{database_path}/{name}/".format(
         database_path=args['database_path'],
         name=args['name']
     )
