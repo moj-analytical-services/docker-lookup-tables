@@ -5,6 +5,7 @@ from constants import (
     RAW_DIR,
     GITHUB_REPO,
     RELEASE,
+    DATABASE_BASE_DIR
 )
 from lookup_sync import LookupTableSync
 
@@ -18,4 +19,5 @@ if __name__ == "__main__":
         RELEASE,
         DATABASE_BASE_DIR
     )
+
     lookup_table_sync.sync()

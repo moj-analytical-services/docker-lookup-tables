@@ -23,7 +23,7 @@ class LookupTableSync:
         logger.info(f"RELEASE: {release}| GITHUB_REPO: {github_repo}")
         github_repo = github_repo[len("lookup_"):]
         self.s3 = boto3.resource("s3")
-        self.meta_dir = os.path.join(release, meta_dir)
+        self.meta_dir = meta_dir
         self.data_dir = data_dir
         self.raw_dir = raw_dir
         self.release = release
@@ -100,7 +100,7 @@ class LookupTableSync:
             table_file_path = os.path.join(self.meta_dir, f)
             tm = read_table_json(table_file_path, database=db)
             # Add a release column as the first file partition to every table
-            tm.add_column(name="release", type="character", "github release tag of this lookup")
+            tm.add_column(name="release", type="character", description="github release tag of this lookup")
             tm.partitions = ["release"] + tm.partitions
             db.add_table(tm)
 
