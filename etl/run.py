@@ -3,7 +3,7 @@ from constants import (
     DATA_DIR,
     META_DIR,
     RAW_DIR,
-    REPO_NAME
+    GITHUB_REPO
     RELEASE,
 )
 from lookup_sync import LookupTableSync
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         META_DIR,
         DATA_DIR,
         RAW_DIR,
-        REPO_NAME,
+        GITHUB_REPO,
         RELEASE,
         DATABASE_BASE_DIR,
     )

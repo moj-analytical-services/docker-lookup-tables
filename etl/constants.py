@@ -1,6 +1,5 @@
 import os
 
-
 SOURCE_DIR = os.environ.get("SOURCE_DIR", "")
 DATA_SUBDIR = os.environ.get("DATA_SUBDIR", "data")
 META_SUBDIR = os.environ.get("META_SUBDIR", "meta")
@@ -12,5 +11,10 @@ META_DIR = os.path.join(SOURCE_DIR, META_SUBDIR)
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "moj-analytics-lookup-tables")
 DATABASE_BASE_DIR = os.environ.get("DATABASE_BASE_DIR", "databases")
 RAW_DIR = os.environ.get("RAW_DIR", "raw")
-RELEASE = os.environ.get("RELEASE", "dev")
-REPO_NAME = os.environ.get("REPO_NAME", "lookup_testing_repo")
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "lookup_testing_repo")
+
+if os.path.isfile('./tag/tag'):
+    with open('./tag/tag') as f:
+        RELEASE = f.readline()
+else:
+    RELEASE = "dev"
