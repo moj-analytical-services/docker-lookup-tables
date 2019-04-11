@@ -20,7 +20,7 @@ def get_meta_json(meta_dir, file_name):
 class LookupTableSync:
     def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, database_base_dir, **kwargs):
         
-        logger.info(f"RELEASE: {release}| GITHUB_REPO: {github_repo}")
+        logger.info(f"RELEASE: {release}| GITHUB_REPO: {github_repo} | DATA_DIR: {data_dir})
         github_repo = github_repo[len("lookup_"):]
         self.s3 = boto3.resource("s3")
         self.meta_dir = meta_dir
@@ -34,7 +34,7 @@ class LookupTableSync:
             self.db_schema = {
                 "name": github_repo,
                 "bucket": bucket_name,
-                "base_folder": database_base_dir,
+                "base_folder": f"{github_repo}/{release}/database",
                 "description": f"A lookup table deployed from {github_repo}"
             }
 
@@ -53,11 +53,12 @@ class LookupTableSync:
 
     @property
     def raw_key(self):
-        return f"{self.raw_dir}/{self.release}/{self.db_name}"
+        return f"{self.db_name}/{self.release}/{self.raw_dir}"
 
     @property
     def database_path(self):
-        return f"s3://{self.bucket_name}/database/{self.db_name}"
+        db = DatabaseMeta(**self.db_schema)
+        return db.s3_database_path
 
     def send_to_s3(self, body, key):
         """Sends body as string to s3 bucket with key"""
@@ -76,17 +77,20 @@ class LookupTableSync:
             meta_and_data[name] = {
                 "meta_path": os.path.join(self.meta_dir, meta_path),
                 "data_path": os.path.join(self.data_dir, data_path),
-                "raw_path": f"{self.raw_path}/{data_path}",
-                "bucket_path": f"{self.raw_key}/{data_path}"
+                "raw_data_path": f"{self.raw_path}/{data_path}",
+                "raw_meta_path": f"{self.raw_path}/{meta_path}",
+                "bucket_data_path": f"{self.raw_key}/{data_path}",
+                "bucket_meta_path": f"{self.raw_key}/{meta_path}"
             }
         return meta_and_data
 
     def send_raw(self):
         """Send raw files to s3"""
         for name, info in self.meta_and_files.items():
-            with open(info["data_path"]) as f:
-                data = f.read()
-            self.send_to_s3(data, info["bucket_path"])
+                for k in ["data_path", "meta_path"]:
+                    with open(info[k]) as f:
+                        data = f.read()
+                    self.send_to_s3(data, info["bucket_"+k])
 
     def create_glue_database(self):
         """Creates glue database"""
@@ -117,7 +121,9 @@ class LookupTableSync:
                 job_arguments={
                     '--database_path': self.database_path,
                     '--name': name,
-                    '--raw_path': info["raw_path"]
+                    '--raw_data_path': info["raw_data_path"],
+                    '--raw_meta_path': info["raw_meta_path"],
+                    '--release': self.release,
                 }
             )
             job.job_name = f"lookup-{self.db_name}-{name}"
