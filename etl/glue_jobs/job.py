@@ -32,7 +32,7 @@ job.init("{name}_lookup".format(
 df = spark.read.format("csv").option("header", "true").load(args["raw_data_path"])
 meta = read_json_from_s3(args["raw_meta_path"])
 
-df = align_df_to_meta(df, meta, drop_columns=meta['partitions'])
+df = align_df_to_meta(df, meta)
 
 df.write.mode('overwrite').format('parquet').save(
     "{database_path}/{name}/release={release}/".format(
