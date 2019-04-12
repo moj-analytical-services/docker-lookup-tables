@@ -57,7 +57,7 @@ class LookupTableSync:
 
     @property
     def raw_key(self):
-        return f"{self.db_name}/{self.raw_dir}/{self.release}/"
+        return f"{self.db_name}/{self.raw_dir}/{self.release}"
 
     @property
     def database_path(self):
