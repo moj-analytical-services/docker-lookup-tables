@@ -1,5 +1,3 @@
-# docker-lookup-tables
-
 Docker image for creating lookup tables
 =======================================
 
@@ -9,7 +7,7 @@ Docker image to parse data from files in github and add them to a data store in 
 Usage
 =====
 
-Create a repo with name prefixed by `lookup-...`
+Create a repo with name prefixed by `lookup_` *(making sure your repo name doesn't contain any dashes)*
 
 Add a `deploy.json` file in the top level of your repo containing:
 
@@ -21,20 +19,20 @@ Add a `deploy.json` file in the top level of your repo containing:
 
 Create a `./data` and `./meta` directory in the top level of the repo
 
-Add a database.json database schema to the `./meta` directory - description of file here: `https://github.com/moj-analytical-services/etl_manager <https://github.com/moj-analytical-services/etl_manager>`_
-
+You do not need to provide a database json. This is inferred when the lookup database is deployed.
 
 ..  code:: JSON
 
     {
-        "description": "Database description ...",
-        "name": "{code_db_name - same as repo name minus the lookup-}",
+        "description": "A lookup table deployed from {your lookup repo name}",
+        "name": "{your lookup repo name}",
         "bucket": "moj-analytics-lookup-tables",
-        "base_folder": "database/{code_db_name}"
+        "base_folder": "{your lookup repo name}/database/"
     }
 
+You can set overides to these values by adding a `database_overwrite.json` to your `meta/` folder. The values you can override are the `bucket` and the `description`. You may want to change the bucket to one that you control access to if you do not wish everyone in the organisation to be able to access the lookup table (which is the default).
 
-Add a .csv file for each table named `{table_name}.csv` where `table_name` is the name of the table you want to create
+Add a .csv file (with headers) for each table named `{table_name}.csv` where `table_name` is the name of the table you want to create
 
 Add a .json table schema file for each table named `{table_name}.json` where `table_name` is the name of the table you want to create and is the same name as the csv file. For information on the table schema file see here: `https://github.com/moj-analytical-services/etl_manager <https://github.com/moj-analytical-services/etl_manager>`_
 
