@@ -18,18 +18,18 @@ def get_meta_json(meta_dir, file_name):
 
 
 class LookupTableSync:
-    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, database_base_dir, **kwargs):
+    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, **kwargs):
         
         logger.info(f"RELEASE: {release}| GITHUB_REPO: {github_repo} | DATA_DIR: {data_dir})
-        github_repo = github_repo[len("lookup_"):]
+
         self.s3 = boto3.resource("s3")
         self.meta_dir = meta_dir
         self.data_dir = data_dir
         self.raw_dir = raw_dir
         self.release = release
         
-        if os.path.isfile(os.path.join(self.meta_dir, "database.json")):
-            self.db_schema = get_meta_json(self.meta_dir, "database.json")
+        if os.path.isfile(os.path.join(self.meta_dir, "database_overwrite.json")):
+            self.db_schema = get_meta_json(self.meta_dir, "database_overwrite.json")
         else:
             self.db_schema = {
                 "name": github_repo,
@@ -98,7 +98,7 @@ class LookupTableSync:
         db = DatabaseMeta(**self.db_schema)
 
         files = os.listdir(self.meta_dir)
-        files = [f for f in files if f.endswith('.json') and f != "database.json"]
+        files = [f for f in files if f.endswith('.json') and f != "database_overwrite.json"]
 
         for f in files:
             table_file_path = os.path.join(self.meta_dir, f)
