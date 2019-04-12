@@ -18,26 +18,30 @@ def get_meta_json(meta_dir, file_name):
 
 
 class LookupTableSync:
-    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, database_base_dir, **kwargs):
+    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, **kwargs):
         
-        logger.info(f"RELEASE: {release}| GITHUB_REPO: {github_repo}")
-        github_repo = github_repo[len("lookup_"):]
+        logger.info(f"RELEASE: {release}| GITHUB_REPO: {github_repo} | DATA_DIR: {data_dir}")
+
         self.s3 = boto3.resource("s3")
         self.meta_dir = meta_dir
         self.data_dir = data_dir
         self.raw_dir = raw_dir
         self.release = release
         
-        if os.path.isfile(os.path.join(self.meta_dir, "database.json")):
-            self.db_schema = get_meta_json(self.meta_dir, "database.json")
-        else:
-            self.db_schema = {
+        self.db_schema = {
                 "name": github_repo,
                 "bucket": bucket_name,
-                "base_folder": database_base_dir,
+                "base_folder": f"{github_repo}/{release}/database",
                 "description": f"A lookup table deployed from {github_repo}"
             }
-
+        
+        if os.path.isfile(os.path.join(self.meta_dir, "database_overwrite.json")):
+            db_overwrite = get_meta_json(self.meta_dir, "database_overwrite.json")
+            if "bucket" in db_overwrite:
+                self.db_schema["bucket"] = db_overwrite.get("bucket")
+            if "description" in db_overwrite:
+                self.db_schema["description"] = db_overwrite.get("description")
+        
         self.db_name = self.db_schema.get("name")
         self.bucket_name = self.db_schema.get("bucket")
         self.meta_and_files = self.find_meta_and_data_files()
@@ -53,11 +57,12 @@ class LookupTableSync:
 
     @property
     def raw_key(self):
-        return f"{self.raw_dir}/{self.release}/{self.db_name}"
+        return f"{self.db_name}/{self.release}/{self.raw_dir}"
 
     @property
     def database_path(self):
-        return f"s3://{self.bucket_name}/database/{self.db_name}"
+        db = DatabaseMeta(**self.db_schema)
+        return db.s3_database_path
 
     def send_to_s3(self, body, key):
         """Sends body as string to s3 bucket with key"""
@@ -76,17 +81,20 @@ class LookupTableSync:
             meta_and_data[name] = {
                 "meta_path": os.path.join(self.meta_dir, meta_path),
                 "data_path": os.path.join(self.data_dir, data_path),
-                "raw_path": f"{self.raw_path}/{data_path}",
-                "bucket_path": f"{self.raw_key}/{data_path}"
+                "raw_data_path": f"{self.raw_path}/data/{data_path}",
+                "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
+                "bucket_data_path": f"{self.raw_key}/data/{data_path}",
+                "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}"
             }
         return meta_and_data
 
     def send_raw(self):
         """Send raw files to s3"""
         for name, info in self.meta_and_files.items():
-            with open(info["data_path"]) as f:
-                data = f.read()
-            self.send_to_s3(data, info["bucket_path"])
+                for k in ["data_path", "meta_path"]:
+                    with open(info[k]) as f:
+                        data = f.read()
+                    self.send_to_s3(data, info["bucket_"+k])
 
     def create_glue_database(self):
         """Creates glue database"""
@@ -94,13 +102,18 @@ class LookupTableSync:
         db = DatabaseMeta(**self.db_schema)
 
         files = os.listdir(self.meta_dir)
-        files = [f for f in files if f.endswith('.json') and f != "database.json"]
+        files = [f for f in files if f.endswith('.json') and f != "database_overwrite.json"]
 
         for f in files:
             table_file_path = os.path.join(self.meta_dir, f)
             tm = read_table_json(table_file_path, database=db)
+            tm.data_format = "parquet"
             # Add a release column as the first file partition to every table
-            tm.add_column(name="release", type="character", description="github release tag of this lookup")
+            tm.add_column(
+                name="release",
+                type="character",
+                description="github release tag of this lookup"
+            )
             tm.partitions = ["release"] + tm.partitions
             db.add_table(tm)
 
@@ -117,7 +130,9 @@ class LookupTableSync:
                 job_arguments={
                     '--database_path': self.database_path,
                     '--name': name,
-                    '--raw_path': info["raw_path"]
+                    '--raw_data_path': info["raw_data_path"],
+                    '--raw_meta_path': info["raw_meta_path"],
+                    '--release': self.release,
                 }
             )
             job.job_name = f"lookup-{self.db_name}-{name}"
@@ -137,5 +152,5 @@ class LookupTableSync:
         logger.info("Running etl")
         logger.info("Sending raw data:")
         self.send_raw()
-        self.create_glue_database()
         self.load_data_to_glue_database()
+        self.create_glue_database()
