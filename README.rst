@@ -27,7 +27,7 @@ You do not need to provide a database json. This is inferred when the lookup dat
         "description": "A lookup table deployed from {your lookup repo name}",
         "name": "{your lookup repo name}",
         "bucket": "moj-analytics-lookup-tables",
-        "base_folder": "{your lookup repo name}/database/"
+        "base_folder": "{your lookup repo name}/database"
     }
 
 You can set overides to these values by adding a `database_overwrite.json` to your `meta/` folder. The values you can override are the `bucket` and the `description`. You may want to change the bucket to one that you control access to if you do not wish everyone in the organisation to be able to access the lookup table (which is the default).

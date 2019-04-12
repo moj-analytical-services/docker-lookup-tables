@@ -20,7 +20,7 @@ def get_meta_json(meta_dir, file_name):
 class LookupTableSync:
     def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, **kwargs):
         
-        logger.info(f"RELEASE: {release}| GITHUB_REPO: {github_repo} | DATA_DIR: {data_dir}")
+        logger.info(f"GITHUB_REPO: {github_repo} | RELEASE: {release}")
 
         self.s3 = boto3.resource("s3")
         self.meta_dir = meta_dir
@@ -31,7 +31,7 @@ class LookupTableSync:
         self.db_schema = {
                 "name": github_repo,
                 "bucket": bucket_name,
-                "base_folder": f"{github_repo}/{release}/database",
+                "base_folder": f"{github_repo}/database",
                 "description": f"A lookup table deployed from {github_repo}"
             }
         
@@ -57,7 +57,7 @@ class LookupTableSync:
 
     @property
     def raw_key(self):
-        return f"{self.db_name}/{self.release}/{self.raw_dir}"
+        return f"{self.db_name}/{self.raw_dir}/{self.release}/"
 
     @property
     def database_path(self):
