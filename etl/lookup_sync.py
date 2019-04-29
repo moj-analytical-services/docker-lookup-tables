@@ -3,7 +3,6 @@ import os
 
 import boto3
 from etl_manager.etl import GlueJob
-
 from etl_manager.meta import DatabaseMeta, read_table_json
 
 

@@ -1,6 +1,4 @@
 boto3==1.9.108
-pandas==0.24.1
 pytest==4.3.0
 
--e git+git://github.com/moj-analytical-services/dataengineeringutils.git#egg=dataengineeringutils
 -e git+git://github.com/moj-analytical-services/etl_manager.git@v2.2.2#egg=etl_manager
