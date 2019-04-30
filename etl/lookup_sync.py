@@ -3,7 +3,6 @@ import os
 
 import boto3
 from etl_manager.etl import GlueJob
-
 from etl_manager.meta import DatabaseMeta, read_table_json
 
 
@@ -18,8 +17,8 @@ def get_meta_json(meta_dir, file_name):
 
 
 class LookupTableSync:
-    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, **kwargs):
-        
+    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo,
+                 release, **kwargs):
         logger.info(f"GITHUB_REPO: {github_repo} | RELEASE: {release}")
 
         self.s3 = boto3.resource("s3")
@@ -29,11 +28,11 @@ class LookupTableSync:
         self.release = release
         
         self.db_schema = {
-                "name": github_repo,
-                "bucket": bucket_name,
-                "base_folder": f"{github_repo}/database",
-                "description": f"A lookup table deployed from {github_repo}"
-            }
+            "name": github_repo,
+            "bucket": bucket_name,
+            "base_folder": f"{github_repo}/database",
+            "description": f"A lookup table deployed from {github_repo}"
+        }
         
         if os.path.isfile(os.path.join(self.meta_dir, "database_overwrite.json")):
             db_overwrite = get_meta_json(self.meta_dir, "database_overwrite.json")
