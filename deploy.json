@@ -1,0 +1,4 @@
+{
+  "mojanalytics-deploy": "v0.1.0",
+  "type": "docker_build"
+}
