@@ -38,6 +38,15 @@ Add a .json table schema file for each table named `{table_name}.json` where `ta
 
 Create a release and concourse should add a job that will create a new database and add the csv data from each .csv file in to a table
 
+When concourse deploys your new lookup table you should see the following outputs:
+
+- A new table partition in your lookup tables database where the partition is `release={github release}`
+- your data and meta data folders (i.e. in the same structure as your lookup repository) in the s3 path `s3://moj-analytics-lookup-tables/{your lookup repo name}/raw/` 
+
+    Note that the bucket will not be moj-analytics-lookup-tables if you speficied a different bucket in your `database_override.json`
+
+These files in raw can be read directly from S3 if you do not wish to use the database versions of your lookup tables. 
+
 Testing
 =======
 
