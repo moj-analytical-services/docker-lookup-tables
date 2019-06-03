@@ -17,12 +17,11 @@ def get_meta_json(meta_dir, file_name):
 
 
 class LookupTableSync:
-    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo, release, **kwargs):
+    def __init__(self, bucket_name, data_dir, raw_dir, github_repo, release, **kwargs):
         
         logger.info(f"GITHUB_REPO: {github_repo} | RELEASE: {release}")
 
         self.s3 = boto3.resource("s3")
-        self.meta_dir = meta_dir
         self.data_dir = data_dir
         self.raw_dir = raw_dir
         self.release = release
@@ -34,8 +33,8 @@ class LookupTableSync:
                 "description": f"A lookup table deployed from {github_repo}"
             }
         
-        if os.path.isfile(os.path.join(self.meta_dir, "database_overwrite.json")):
-            db_overwrite = get_meta_json(self.meta_dir, "database_overwrite.json")
+        if os.path.isfile(os.path.join(self.data_dir, "database_overwrite.json")):
+            db_overwrite = get_meta_json(self.data_dir, "database_overwrite.json")
             if "bucket" in db_overwrite:
                 self.db_schema["bucket"] = db_overwrite.get("bucket")
             if "description" in db_overwrite:
@@ -70,21 +69,21 @@ class LookupTableSync:
 
     def find_meta_and_data_files(self):
         """get meta and data files"""
-        metas = os.listdir(self.meta_dir)
-        data = os.listdir(self.data_dir)
+        tables = os.listdir(self.data_dir)
 
         meta_and_data = {}
-        for data_path in data:
-            name = data_path[:data_path.rfind(".")]
-            meta_path = next((m for m in metas if m.startswith(name)), None)
-            meta_and_data[name] = {
-                "meta_path": os.path.join(self.meta_dir, meta_path),
-                "data_path": os.path.join(self.data_dir, data_path),
-                "raw_data_path": f"{self.raw_path}/data/{data_path}",
-                "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
-                "bucket_data_path": f"{self.raw_key}/data/{data_path}",
-                "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}"
-            }
+        for table_path in tables:
+            for data_path in os.listdir(os.path.dirname(table_path)):
+                name = os.path.join(data_path, 'data.csv')
+                meta_path = os.path.join(data_path, 'meta.json')
+                meta_and_data[name] = {
+                    "meta_path": meta_path,
+                    "data_path": name,
+                    "raw_data_path": f"{self.raw_path}/data/{data_path}",
+                    "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
+                    "bucket_data_path": f"{self.raw_key}/data/{data_path}",
+                    "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}"
+                }
         return meta_and_data
 
     def send_raw(self):
