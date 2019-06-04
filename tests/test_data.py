@@ -11,7 +11,6 @@ from dataengineeringutils.pd_metadata_conformance import (
 from constants import (
     BUCKET_NAME,
     DATA_DIR,
-    META_DIR,
     RAW_DIR,
     GITHUB_REPO,
     RELEASE,
@@ -23,7 +22,6 @@ from lookup_sync import LookupTableSync
 def lookup():
     lookup_table_sync = LookupTableSync(
         BUCKET_NAME,
-        META_DIR,
         DATA_DIR,
         RAW_DIR,
         GITHUB_REPO,
@@ -34,8 +32,8 @@ def lookup():
 
 @pytest.fixture
 def database_overwrite():
-    if os.path.isfile(f"{META_DIR}/database_overwrite.json"):
-        with open(f"{META_DIR}/database_overwrite.json", "r") as f:
+    if os.path.isfile(f"{DATA_DIR}/database_overwrite.json"):
+        with open(f"{DATA_DIR}/database_overwrite.json", "r") as f:
             return json.loads(f.read())
     return {}
 
@@ -57,7 +55,6 @@ def test_database_schema(database_overwrite, lookup):
 def test_file_names_match_schema(lookup):
     assert len(lookup.meta_and_files.keys()) > 0
     for name, info in lookup.meta_and_files.items():
-        assert info["meta_path"] is not None
         assert os.path.isfile(info["meta_path"])
         assert info["data_path"] is not None
         assert os.path.isfile(info["data_path"])

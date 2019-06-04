@@ -69,42 +69,42 @@ class LookupTableSync:
 
     def find_meta_and_data_files(self):
         """get meta and data files"""
-        tables = os.listdir(self.data_dir)
+        tables = [f.name for f in os.scandir(self.data_dir) if f.is_dir()]
+
+        print(os.path.dirname(os.path.realpath(__file__)))
+        print(os.getcwd())
+        print(self.data_dir)
+        print(os.listdir(self.data_dir))
+        print(tables)
 
         meta_and_data = {}
-        for table_path in tables:
-            for data_path in os.listdir(os.path.dirname(table_path)):
-                name = os.path.join(data_path, 'data.csv')
-                meta_path = os.path.join(data_path, 'meta.json')
-                meta_and_data[name] = {
-                    "meta_path": meta_path,
-                    "data_path": name,
-                    "raw_data_path": f"{self.raw_path}/data/{data_path}",
-                    "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
-                    "bucket_data_path": f"{self.raw_key}/data/{data_path}",
-                    "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}"
-                }
+        for table_name in tables:
+            data_path = os.path.join(self.data_dir, table_name, 'data.csv')
+            meta_path = os.path.join(self.data_dir, table_name, 'meta.json')
+            meta_and_data[table_name] = {
+                "meta_path": meta_path,
+                "data_path": data_path,
+                "raw_data_path": f"{self.raw_path}/data/{data_path}",
+                "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
+                "bucket_data_path": f"{self.raw_key}/data/{data_path}",
+                "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}"
+            }
         return meta_and_data
 
     def send_raw(self):
         """Send raw files to s3"""
         for name, info in self.meta_and_files.items():
-                for k in ["data_path", "meta_path"]:
-                    with open(info[k]) as f:
-                        data = f.read()
-                    self.send_to_s3(data, info["bucket_"+k])
+            for k in ["data_path", "meta_path"]:
+                with open(info[k]) as f:
+                    data = f.read()
+                self.send_to_s3(data, info[f"bucket_{k}"])
 
     def create_glue_database(self):
         """Creates glue database"""
         # Create database based on db_schema
         db = DatabaseMeta(**self.db_schema)
-
-        files = os.listdir(self.meta_dir)
-        files = [f for f in files if f.endswith('.json') and f != "database_overwrite.json"]
-
-        for f in files:
-            table_file_path = os.path.join(self.meta_dir, f)
-            tm = read_table_json(table_file_path, database=db)
+        for name, info in self.meta_and_files.items():
+            tm = read_table_json(info["meta_path"], database=db)
             tm.data_format = "parquet"
             # Add a release column as the first file partition to every table
             tm.add_column(
