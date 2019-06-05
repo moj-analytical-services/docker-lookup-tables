@@ -40,7 +40,8 @@ def database_overwrite():
 
 def test_database_schema(database_overwrite, lookup):
     if database_overwrite.get("description"):
-        assert lookup.db_schema["description"] == database_overwrite["description"]
+        assert lookup.db_schema["description"] == \
+               database_overwrite["description"]
     if database_overwrite.get("bucket"):
         assert lookup.db_schema["bucket"] == database_overwrite["bucket"]
     if not database_overwrite:
@@ -55,6 +56,7 @@ def test_database_schema(database_overwrite, lookup):
 def test_file_names_match_schema(lookup):
     assert len(lookup.meta_and_files.keys()) > 0
     for name, info in lookup.meta_and_files.items():
+        assert info["meta_path"] is not None
         assert os.path.isfile(info["meta_path"])
         assert info["data_path"] is not None
         assert os.path.isfile(info["data_path"])
