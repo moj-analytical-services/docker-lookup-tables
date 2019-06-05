@@ -17,12 +17,11 @@ def get_meta_json(meta_dir, file_name):
 
 
 class LookupTableSync:
-    def __init__(self, bucket_name, meta_dir, data_dir, raw_dir, github_repo,
-                 release, **kwargs):
+    def __init__(self, bucket_name, data_dir, raw_dir, github_repo, release,
+                 **kwargs):
         logger.info(f"GITHUB_REPO: {github_repo} | RELEASE: {release}")
 
         self.s3 = boto3.resource("s3")
-        self.meta_dir = meta_dir
         self.data_dir = data_dir
         self.raw_dir = raw_dir
         self.release = release
@@ -34,8 +33,8 @@ class LookupTableSync:
             "description": f"A lookup table deployed from {github_repo}"
         }
         
-        if os.path.isfile(os.path.join(self.meta_dir, "database_overwrite.json")):
-            db_overwrite = get_meta_json(self.meta_dir, "database_overwrite.json")
+        if os.path.isfile(os.path.join(self.data_dir, "database_overwrite.json")):
+            db_overwrite = get_meta_json(self.data_dir, "database_overwrite.json")
             if "bucket" in db_overwrite:
                 self.db_schema["bucket"] = db_overwrite.get("bucket")
             if "description" in db_overwrite:
@@ -70,16 +69,14 @@ class LookupTableSync:
 
     def find_meta_and_data_files(self):
         """get meta and data files"""
-        metas = os.listdir(self.meta_dir)
-        data = os.listdir(self.data_dir)
-
+        tables = [f.name for f in os.scandir(self.data_dir) if f.is_dir()]
         meta_and_data = {}
-        for data_path in data:
-            name = data_path[:data_path.rfind(".")]
-            meta_path = next((m for m in metas if m.startswith(name)), None)
-            meta_and_data[name] = {
-                "meta_path": os.path.join(self.meta_dir, meta_path),
-                "data_path": os.path.join(self.data_dir, data_path),
+        for table_name in tables:
+            data_path = os.path.join(self.data_dir, table_name, 'data.csv')
+            meta_path = os.path.join(self.data_dir, table_name, 'meta.json')
+            meta_and_data[table_name] = {
+                "meta_path": meta_path,
+                "data_path": data_path,
                 "raw_data_path": f"{self.raw_path}/data/{data_path}",
                 "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
                 "bucket_data_path": f"{self.raw_key}/data/{data_path}",
@@ -90,22 +87,17 @@ class LookupTableSync:
     def send_raw(self):
         """Send raw files to s3"""
         for name, info in self.meta_and_files.items():
-                for k in ["data_path", "meta_path"]:
-                    with open(info[k]) as f:
-                        data = f.read()
-                    self.send_to_s3(data, info["bucket_"+k])
+            for k in ["data_path", "meta_path"]:
+                with open(info[k]) as f:
+                    data = f.read()
+                self.send_to_s3(data, info[f"bucket_{k}"])
 
     def create_glue_database(self):
         """Creates glue database"""
         # Create database based on db_schema
         db = DatabaseMeta(**self.db_schema)
-
-        files = os.listdir(self.meta_dir)
-        files = [f for f in files if f.endswith('.json') and f != "database_overwrite.json"]
-
-        for f in files:
-            table_file_path = os.path.join(self.meta_dir, f)
-            tm = read_table_json(table_file_path, database=db)
+        for name, info in self.meta_and_files.items():
+            tm = read_table_json(info["meta_path"], database=db)
             tm.data_format = "parquet"
             # Add a release column as the first file partition to every table
             tm.add_column(
