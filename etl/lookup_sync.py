@@ -70,13 +70,6 @@ class LookupTableSync:
     def find_meta_and_data_files(self):
         """get meta and data files"""
         tables = [f.name for f in os.scandir(self.data_dir) if f.is_dir()]
-
-        print(os.path.dirname(os.path.realpath(__file__)))
-        print(os.getcwd())
-        print(self.data_dir)
-        print(os.listdir(self.data_dir))
-        print(tables)
-
         meta_and_data = {}
         for table_name in tables:
             data_path = os.path.join(self.data_dir, table_name, 'data.csv')
