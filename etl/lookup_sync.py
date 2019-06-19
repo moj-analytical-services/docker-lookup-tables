@@ -26,7 +26,7 @@ def define_data_meta_path(basepath, table_name, data=True):
 
     path = os.path.join(basepath, table_name, f"{name}.{ext}")
     if not os.path.exists(path):
-        path = os.path.join(basepath, f"{table_name}.{ext}")
+        path = os.path.join(basepath, table_name, f"{table_name}.{ext}")
         if not os.path.exists(path):
             err_str = f"Could not find file with name {name}.{ext} or {table_name}.{ext} in dir: {os.path.join(basepath, table_name)}"
             raise FileNotFoundError(err_str)
