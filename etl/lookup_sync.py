@@ -16,30 +16,47 @@ def get_meta_json(meta_dir, file_name):
         return json.load(f)
 
 
+def define_data_meta_path(basepath, table_name, data=True):
+    if data:
+        name = "data"
+        ext = "csv"
+    else:
+        name = "meta"
+        ext = "json"
+
+    path = os.path.join(basepath, table_name, f"{name}.{ext}")
+    if not os.path.exists(path):
+        path = os.path.join(basepath, f"{table_name}.{ext}")
+        if not os.path.exists(path):
+            err_str = f"Could not find file with name {name}.{ext} or {table_name}.{ext} in dir: {os.path.join(basepath, table_name)}"
+            raise FileNotFoundError(err_str)
+
+    return path
+
+
 class LookupTableSync:
-    def __init__(self, bucket_name, data_dir, raw_dir, github_repo, release,
-                 **kwargs):
+    def __init__(self, bucket_name, data_dir, raw_dir, github_repo, release, **kwargs):
         logger.info(f"GITHUB_REPO: {github_repo} | RELEASE: {release}")
 
         self.s3 = boto3.resource("s3")
         self.data_dir = data_dir
         self.raw_dir = raw_dir
         self.release = release
-        
+
         self.db_schema = {
             "name": github_repo,
             "bucket": bucket_name,
             "base_folder": f"{github_repo}/database",
-            "description": f"A lookup table deployed from {github_repo}"
+            "description": f"A lookup table deployed from {github_repo}",
         }
-        
+
         if os.path.isfile(os.path.join(self.data_dir, "database_overwrite.json")):
             db_overwrite = get_meta_json(self.data_dir, "database_overwrite.json")
             if "bucket" in db_overwrite:
                 self.db_schema["bucket"] = db_overwrite.get("bucket")
             if "description" in db_overwrite:
                 self.db_schema["description"] = db_overwrite.get("description")
-        
+
         self.db_name = self.db_schema.get("name")
         self.bucket_name = self.db_schema.get("bucket")
         self.meta_and_files = self.find_meta_and_data_files()
@@ -72,15 +89,15 @@ class LookupTableSync:
         tables = [f.name for f in os.scandir(self.data_dir) if f.is_dir()]
         meta_and_data = {}
         for table_name in tables:
-            data_path = os.path.join(self.data_dir, table_name, 'data.csv')
-            meta_path = os.path.join(self.data_dir, table_name, 'meta.json')
+            data_path = define_data_meta_path(self.data_dir, table_name, True)
+            meta_path = define_data_meta_path(self.data_dir, table_name, False)
             meta_and_data[table_name] = {
                 "meta_path": meta_path,
                 "data_path": data_path,
                 "raw_data_path": f"{self.raw_path}/data/{data_path}",
                 "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
                 "bucket_data_path": f"{self.raw_key}/data/{data_path}",
-                "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}"
+                "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}",
             }
         return meta_and_data
 
@@ -103,7 +120,7 @@ class LookupTableSync:
             tm.add_column(
                 name="release",
                 type="character",
-                description="github release tag of this lookup"
+                description="github release tag of this lookup",
             )
             tm.partitions = ["release"] + tm.partitions
             db.add_table(tm)
@@ -119,12 +136,12 @@ class LookupTableSync:
                 bucket=self.bucket_name,
                 job_role="lookups_job_role",
                 job_arguments={
-                    '--database_path': self.database_path,
-                    '--name': name,
-                    '--raw_data_path': info["raw_data_path"],
-                    '--raw_meta_path': info["raw_meta_path"],
-                    '--release': self.release,
-                }
+                    "--database_path": self.database_path,
+                    "--name": name,
+                    "--raw_data_path": info["raw_data_path"],
+                    "--raw_meta_path": info["raw_meta_path"],
+                    "--release": self.release,
+                },
             )
             job.job_name = f"lookup-{self.db_name}-{name}"
 
@@ -133,7 +150,7 @@ class LookupTableSync:
             job.wait_for_completion(verbose=True)
             logger.info("Awaiting completion")
 
-            if job.job_run_state == 'SUCCEEDED':
+            if job.job_run_state == "SUCCEEDED":
                 logger.info("Job successful - tidying")
 
             job.cleanup()
