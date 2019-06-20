@@ -18,16 +18,17 @@ Add a `deploy.json` file in the top level of your repo containing:
     }
 
 Create a `./data` directory in the top level of the repo. This is where you will store your lookup tables in the following structure: ::
-├── data/
-|   |
-│   ├── lookup_table1/
-|   |   ├── data.csv
-|   |   ├── meta.json
-|   |   ├── README.md
-|   |
-│   ├── lookup_table2/
-|   |   ├── lookup_table2.csv
-|   |   ├── lookup_table2.json
+
+    ├── data/
+    |   |
+    │   ├── lookup_table1/
+    |   |   ├── data.csv
+    |   |   ├── meta.json
+    |   |   ├── README.md
+    |   |
+    │   ├── lookup_table2/
+    |   |   ├── lookup_table2.csv
+    |   |   ├── lookup_table2.json
 
 Each folder in `data/` should be named after the lookup table that you want to deploy. Inside that lookup table folder you can add whatever you want in there (e.g. a README.md). But it must contain the following:
 
