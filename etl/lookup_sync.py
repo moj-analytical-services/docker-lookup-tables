@@ -53,6 +53,9 @@ class LookupTableSync:
         if os.path.isfile(os.path.join(self.data_dir, "database_overwrite.json")):
             db_overwrite = get_meta_json(self.data_dir, "database_overwrite.json")
             if "bucket" in db_overwrite:
+                valid_prefix = "alpha-lookup-"
+                if not db_overwrite.get("bucket", "").startswith(valid_prefix):
+                    raise ValueError(f"bucket specified in database_overwrite must start with: {valid_prefix}")
                 self.db_schema["bucket"] = db_overwrite.get("bucket")
             if "description" in db_overwrite:
                 self.db_schema["description"] = db_overwrite.get("description")
