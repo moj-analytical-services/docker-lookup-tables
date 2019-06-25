@@ -47,7 +47,7 @@ You do not need to provide a database json. This is inferred when the lookup dat
         "base_folder": "{your lookup repo name}/database"
     }
 
-You can set overides to these values by adding a `database_overwrite.json` to your `data/` folder. The values you can override are the `bucket` and the `description`. You may want to change the bucket to one that you control access to if you do not wish everyone in the organisation to be able to access the lookup table (which is the default).
+You can set overides to these values by adding a `database_overwrite.json` to your `data/` folder. The values you can override are the `bucket` and the `description`. You may want to change the bucket to one that you control access to if you do not wish everyone in the organisation to be able to access the lookup table (which is the default). Note your s3 bucket must be prefixed with `alpha-lookup-`.
 
 Create a release and concourse should add a job that will create a new database and add the csv data from each .csv file in to a table
 
