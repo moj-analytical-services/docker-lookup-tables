@@ -35,12 +35,11 @@ def define_data_meta_path(basepath, table_name, data=True):
 
 
 class LookupTableSync:
-    def __init__(self, bucket_name, data_dir, raw_dir, github_repo, release, **kwargs):
+    def __init__(self, bucket_name, data_dir, github_repo, release, **kwargs):
         logger.info(f"GITHUB_REPO: {github_repo} | RELEASE: {release}")
 
         self.s3 = boto3.resource("s3")
         self.data_dir = data_dir
-        self.raw_dir = raw_dir
         self.release = release
 
         self.db_schema = {
@@ -55,7 +54,9 @@ class LookupTableSync:
             if "bucket" in db_overwrite:
                 valid_prefix = "alpha-lookup-"
                 if not db_overwrite.get("bucket", "").startswith(valid_prefix):
-                    raise ValueError(f"bucket specified in database_overwrite must start with: {valid_prefix}")
+                    raise ValueError(
+                        f"bucket specified in database_overwrite must start with: {valid_prefix}"
+                    )
                 self.db_schema["bucket"] = db_overwrite.get("bucket")
             if "description" in db_overwrite:
                 self.db_schema["description"] = db_overwrite.get("description")
@@ -75,7 +76,7 @@ class LookupTableSync:
 
     @property
     def raw_key(self):
-        return f"{self.db_name}/{self.raw_dir}/{self.release}"
+        return f"{self.db_name}/{self.release}"
 
     @property
     def database_path(self):
@@ -94,13 +95,15 @@ class LookupTableSync:
         for table_name in tables:
             data_path = define_data_meta_path(self.data_dir, table_name, True)
             meta_path = define_data_meta_path(self.data_dir, table_name, False)
+            data_s3_path = data_path.replace("lookup-source/", "", 1)
+            meta_s3_path = meta_path.replace("lookup-source/", "", 1)
             meta_and_data[table_name] = {
                 "meta_path": meta_path,
                 "data_path": data_path,
-                "raw_data_path": f"{self.raw_path}/data/{data_path}",
-                "raw_meta_path": f"{self.raw_path}/meta/{meta_path}",
-                "bucket_data_path": f"{self.raw_key}/data/{data_path}",
-                "bucket_meta_path": f"{self.raw_key}/meta/{meta_path}",
+                "raw_data_path": f"{self.raw_path}/{data_s3_path}",
+                "raw_meta_path": f"{self.raw_path}/{meta_s3_path}",
+                "bucket_data_path": f"{self.raw_key}/{data_s3_path}",
+                "bucket_meta_path": f"{self.raw_key}/{meta_s3_path}",
             }
         return meta_and_data
 
