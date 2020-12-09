@@ -5,6 +5,8 @@ import boto3
 from etl_manager.etl import GlueJob
 from etl_manager.meta import DatabaseMeta, read_table_json
 
+import pyarrow as pa
+from pyarrow import fs, csv, parquet as pq
 
 from logger import get_logger
 
@@ -32,6 +34,40 @@ def define_data_meta_path(basepath, table_name, data=True):
             raise FileNotFoundError(err_str)
 
     return path
+
+
+def read_csv_write_to_parquet(local_data_path, s3_path, local_meta_path):
+
+    local = fs.LocalFileSystem()
+
+    with local.open_input_stream(local_data_path) as f:
+        tab = csv.read_csv(f)
+
+
+def convert_meta_col_to_arrow_tuple(col):
+
+    schema_convert = {
+        "character": pa.string,
+        "int": pa.int64,
+        "long": pa.int64,
+        "float": pa.float64,
+        "double": pa.float64,
+        "date": pa.date64,
+        "boolean": pa.bool_,
+        "binary": pa.binary,
+        "decimal": None,
+    }
+
+    if c["type"].startswith("decimal"):
+        n = col["name"]
+        a, b = col["type"].split("(", 1)[1].split(")", 1)[0].split(",", 1)
+        t = (n, pa.decimal128(int(a), int(b)))
+    elif c["type"] == "datetime":
+        t = (n, pa.timestamp("s"))
+    else:
+        t = (n, schema_convert[c["type"]]())
+
+    return t
 
 
 class LookupTableSync:
@@ -89,7 +125,20 @@ class LookupTableSync:
         self.bucket.put_object(Key=key, Body=body)
 
     def find_meta_and_data_files(self):
-        """get meta and data files"""
+        """
+        Get meta and data files.
+
+        Each folder in the base repo represents a table (name of folder = table name)
+
+        Returns a dictionary with each key as the table_name. Each value is:
+        {
+            "meta_path": Path to the tables metadata JSON locally (in the git repo),
+            "data_path": Path to the tables data CSV locally (in the git repo),
+            "data_obj_key": S3 object path to where the exact copy of the local data CSV file will be uploaded to,
+            "meta_obj_key": S3 object path to where the exact copy of the local metadata JSON file will be uploaded to,
+        }
+
+        """
         tables = [f.name for f in os.scandir(self.data_dir) if f.is_dir()]
         meta_and_data = {}
         for table_name in tables:
@@ -100,35 +149,39 @@ class LookupTableSync:
             meta_and_data[table_name] = {
                 "meta_path": meta_path,
                 "data_path": data_path,
-                "raw_data_path": f"{self.raw_path}/{data_s3_path}",
-                "raw_meta_path": f"{self.raw_path}/{meta_s3_path}",
-                "bucket_data_path": f"{self.raw_key}/{data_s3_path}",
-                "bucket_meta_path": f"{self.raw_key}/{meta_s3_path}",
+                "data_obj_key": f"{self.raw_key}/{data_s3_path}",
+                "meta_obj_key": f"{self.raw_key}/{meta_s3_path}",
             }
         return meta_and_data
 
     def send_raw(self):
-        """Send raw files to s3"""
-        for name, info in self.meta_and_files.items():
+        """Send local files to S3 in their raw form"""
+        for table_name, data_paths in self.meta_and_files.items():
             for k in ["data_path", "meta_path"]:
-                with open(info[k]) as f:
+                prefix = "data" if k == "data_path" else "meta"
+                with open(data_paths[k]) as f:
                     data = f.read()
-                self.send_to_s3(data, info[f"bucket_{k}"])
+                self.send_to_s3(data, data_paths[f"{prefix}_obj_key"])
 
     def create_glue_database(self):
         """Creates glue database"""
         # Create database based on db_schema
         db = DatabaseMeta(**self.db_schema)
-        for name, info in self.meta_and_files.items():
-            tm = read_table_json(info["meta_path"], database=db)
+        for table_name, data_paths in self.meta_and_files.items():
+            tm = read_table_json(data_paths["meta_path"], database=db)
             tm.data_format = "parquet"
+            if tm.partitions:
+                raise AttributeError(
+                    "Automated lookup tables can only be "
+                    "partitioned by their GitHub release"
+                )
             # Add a release column as the first file partition to every table
             tm.add_column(
                 name="release",
                 type="character",
                 description="github release tag of this lookup",
             )
-            tm.partitions = ["release"] + tm.partitions
+            tm.partitions = ["release"]
             db.add_table(tm)
 
         db.create_glue_database(delete_if_exists=True)
@@ -136,30 +189,20 @@ class LookupTableSync:
 
     def load_data_to_glue_database(self):
         """Write csv to database bucket as parquet"""
-        for name, info in self.meta_and_files.items():
-            job = GlueJob(
-                job_folder=f"/etl/glue_jobs",
-                bucket=self.bucket_name,
-                job_role="lookups_job_role",
-                job_arguments={
-                    "--database_path": self.database_path,
-                    "--name": name,
-                    "--raw_data_path": info["raw_data_path"],
-                    "--raw_meta_path": info["raw_meta_path"],
-                    "--release": self.release,
-                },
+        for table_name, data_paths in self.meta_and_files.items():
+            out_path = os.path.join(
+                self.database_path,
+                table_name,
+                f"release={self.release}",
+                f"{table_name}_{self.release}.parquet.snappy"
             )
-            job.job_name = f"lookup-{self.db_name}-{name}"
+            read_csv_write_to_parquet(
+                data_paths["data_path"],
+                out_path,
+                data_paths["meta_path"]
+            )
 
-            job.run_job()
-            logger.info("Job running")
-            job.wait_for_completion(verbose=True)
-            logger.info("Awaiting completion")
 
-            if job.job_run_state == "SUCCEEDED":
-                logger.info("Job successful - tidying")
-
-            job.cleanup()
 
     def sync(self):
         """Syncs repo with glue dataset"""
@@ -168,3 +211,8 @@ class LookupTableSync:
         self.send_raw()
         self.load_data_to_glue_database()
         self.create_glue_database()
+
+
+"{database_path}/{name}/release={release}/".format(
+    database_path=args["database_path"], name=args["name"], release=args["release"]
+)
