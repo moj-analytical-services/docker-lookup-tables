@@ -2,20 +2,15 @@ import json
 import os
 
 import pytest
-import pandas as pd
 
-from dataengineeringutils.pd_metadata_conformance import (
-    check_pd_df_exactly_conforms_to_metadata,
-)
-
-from constants import (
+from etl.constants import (
     BUCKET_NAME,
     DATA_DIR,
     RAW_DIR,
     GITHUB_REPO,
     RELEASE,
 )
-from lookup_sync import LookupTableSync
+from etl.lookup_sync import LookupTableSync
 
 
 @pytest.fixture
@@ -61,12 +56,3 @@ def test_file_names_match_schema(lookup):
         assert info["data_path"] is not None
         assert os.path.isfile(info["data_path"])
         assert name is not None
-
-
-def test_data_matches_schema(lookup):
-    for name, info in lookup.meta_and_files.items():
-        with open(info["meta_path"], "r") as f:
-            table_metadata = json.load(f)
-        df = pd.read_csv(info["data_path"])
-        assert check_pd_df_exactly_conforms_to_metadata(df, table_metadata) \
-            is None

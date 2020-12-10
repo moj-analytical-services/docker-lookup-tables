@@ -14,3 +14,5 @@ if os.path.isfile("release/tag"):
         RELEASE = f.readline()
 else:
     RELEASE = "dev"
+
+REGION = "eu-west-1"
