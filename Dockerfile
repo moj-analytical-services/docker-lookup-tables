@@ -14,6 +14,5 @@ RUN pip install -r requirements_${ENVIRONMENT}.txt
 RUN apt-get -y remove --purge git
 
 COPY etl /etl
-COPY tests /tests
 
 ENTRYPOINT python -u run.py
