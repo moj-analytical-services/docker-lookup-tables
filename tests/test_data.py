@@ -5,8 +5,8 @@ import pytest
 
 from etl.constants import (
     BUCKET_NAME,
+    SOURCE_DIR,
     DATA_DIR,
-    RAW_DIR,
     GITHUB_REPO,
     RELEASE,
 )
@@ -14,11 +14,11 @@ from etl.lookup_sync import LookupTableSync
 
 
 @pytest.fixture
-def lookup():
+def lookup(setup_env):
     lookup_table_sync = LookupTableSync(
         BUCKET_NAME,
+        SOURCE_DIR,
         DATA_DIR,
-        RAW_DIR,
         GITHUB_REPO,
         RELEASE,
     )
@@ -26,7 +26,7 @@ def lookup():
 
 
 @pytest.fixture
-def database_overwrite():
+def database_overwrite(setup_env):
     if os.path.isfile(f"{DATA_DIR}/database_overwrite.json"):
         with open(f"{DATA_DIR}/database_overwrite.json", "r") as f:
             return json.loads(f.read())
