@@ -1,6 +1,6 @@
 {
     "$schema": "https://moj-analytical-services.github.io/metadata_schema/table/v1.4.0.json",
-    "name": "lookup1",
+    "name": "lookup",
     "description": "A test lookup table",
     "data_format": "csv",
     "columns": [
@@ -50,5 +50,5 @@
             "description": "Test decimal column"
         }
     ],
-    "location": "lookup1/"
+    "location": "lookup/"
 }

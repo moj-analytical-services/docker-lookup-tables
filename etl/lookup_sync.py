@@ -87,7 +87,6 @@ class LookupTableSync:
     def __init__(
         self,
         bucket_name,
-        source_dir,
         data_dir,
         github_repo,
         release,
@@ -96,7 +95,6 @@ class LookupTableSync:
         logger.info(f"GITHUB_REPO: {github_repo} | RELEASE: {release}")
 
         self.s3 = boto3.resource("s3")
-        self.source_dir = source_dir
         self.data_dir = data_dir
         self.release = release
 
@@ -173,16 +171,11 @@ class LookupTableSync:
             data_s3_path = data_path.replace("lookup-source/", "", 1)
             meta_s3_path = meta_path.replace("lookup-source/", "", 1)
 
-            # In case not uploading lookup from root dir (e.g. source_dir != "")
-            if self.source_dir:
-                data_s3_path = data_path.replace(self.source_dir, "", 1)
-                meta_s3_path = meta_path.replace(self.source_dir, "", 1)
-
             meta_and_data[table_name] = {
                 "meta_path": meta_path,
                 "data_path": data_path,
-                "data_obj_key": f"{self.raw_key}/{data_s3_path}",
-                "meta_obj_key": f"{self.raw_key}/{meta_s3_path}",
+                "data_obj_key": os.path.join(self.raw_key, data_s3_path),
+                "meta_obj_key": os.path.join(self.raw_key, meta_s3_path),
             }
         return meta_and_data
 

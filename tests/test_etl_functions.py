@@ -1,7 +1,24 @@
-def test_end_to_end(s3, mocker):
+import os
+import pytest
+import json
+
+
+@pytest.mark.parametrize("overwrite_json", [True, False])
+def test_end_to_end(setup_env_and_s3, overwrite_json):
+    os.environ["GITHUB_REPO"] = "dummy_repo"
+    os.environ["BUCKET_NAME"] = "moj-analytics-lookup-tables"
+
+    print(os.listdir("data/lookup1/"))
+    if overwrite_json:
+        with open("data/database_overwrite.json", 'w') as f:
+            overwrite_param = {
+                "description": "test new desc",
+                "bucket": "alpha-lookup-overwrite-bucket"
+            }
+            json.dump(overwrite_param, f)
+
     from etl.constants import (
         BUCKET_NAME,
-        SOURCE_DIR,
         DATA_DIR,
         GITHUB_REPO,
         RELEASE,
@@ -11,7 +28,6 @@ def test_end_to_end(s3, mocker):
 
     lookup_table_sync = LookupTableSync(
         BUCKET_NAME,
-        SOURCE_DIR,
         DATA_DIR,
         GITHUB_REPO,
         RELEASE
@@ -19,7 +35,8 @@ def test_end_to_end(s3, mocker):
     lookup_table_sync.send_raw()
 
     # Check files uploaded to the correct place
-    expected_s3_basepath = f"s3://{BUCKET_NAME}/{GITHUB_REPO}/{RELEASE}/"
+    b = "alpha-lookup-overwrite-bucket" if overwrite_json else BUCKET_NAME
+    expected_s3_basepath = f"s3://{b}/{GITHUB_REPO}/{RELEASE}/"
     fps = get_filepaths_from_s3_folder(expected_s3_basepath)
     fps = [fp.replace(expected_s3_basepath, "") for fp in fps]
 

@@ -20,6 +20,8 @@ Create a `./data` directory in the top level of the repo. This is where you will
 ```
     ├── data/
     |   |
+    │   ├── database_overwrite.json (optional, see below)
+    |   |
     │   ├── lookup_table1/
     |   |   ├── data.csv
     |   |   ├── meta.json
