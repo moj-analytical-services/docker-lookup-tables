@@ -1,3 +1,2 @@
 etl-manager==7.4.0
-awswrangler==1.10.1
 pyarrow==2.0.0
