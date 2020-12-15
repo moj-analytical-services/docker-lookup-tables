@@ -1,4 +1,4 @@
-FROM python:3.7-slim
+FROM 593291632749.dkr.ecr.eu-west-1.amazonaws.com/python:3.7-slim
 
 WORKDIR /etl
 
@@ -13,6 +13,8 @@ RUN pip install -r requirements_${ENVIRONMENT}.txt
 
 RUN apt-get -y remove --purge git
 
-COPY etl /etl
+COPY etl/ etl/
+COPY tests/ tests/
+COPY run.py run.py
 
 ENTRYPOINT python -u run.py

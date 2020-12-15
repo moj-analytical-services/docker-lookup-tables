@@ -32,7 +32,8 @@ def test_end_to_end(setup_env_and_s3, overwrite_json):
         GITHUB_REPO,
         RELEASE
     )
-    lookup_table_sync.send_raw()
+    # lookup_table_sync.send_raw()
+    lookup_table_sync.load_data_to_glue_database()
 
     # Check files uploaded to the correct place
     b = "alpha-lookup-overwrite-bucket" if overwrite_json else BUCKET_NAME
