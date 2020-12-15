@@ -14,7 +14,5 @@ RUN pip install -r requirements_${ENVIRONMENT}.txt
 RUN apt-get -y remove --purge git
 
 COPY etl /etl
-COPY tests /tests
 
-ENV PYTHONPATH "${PYTHONPATH}:/etl"
-ENTRYPOINT python -u /etl/run.py
+ENTRYPOINT python -u run.py

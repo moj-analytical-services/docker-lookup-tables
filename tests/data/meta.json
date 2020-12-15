@@ -1,0 +1,54 @@
+{
+    "$schema": "https://moj-analytical-services.github.io/metadata_schema/table/v1.4.0.json",
+    "name": "lookup",
+    "description": "A test lookup table",
+    "data_format": "csv",
+    "columns": [
+        {
+            "name": "character_col",
+            "type": "character",
+            "description": "Test character column"
+        },
+        {
+            "name": "int_col",
+            "type": "int",
+            "description": "Test int column"
+        },
+        {
+            "name": "long_col",
+            "type": "long",
+            "description": "Test long column"
+        },
+        {
+            "name": "date_col",
+            "type": "date",
+            "description": "Test date column"
+        },
+        {
+            "name": "datetime_col",
+            "type": "datetime",
+            "description": "Test datetime column"
+        },
+        {
+            "name": "boolean_col",
+            "type": "boolean",
+            "description": "Test boolean column"
+        },
+        {
+            "name": "float_col",
+            "type": "float",
+            "description": "Test float column"
+        },
+        {
+            "name": "double_col",
+            "type": "double",
+            "description": "Test double column"
+        },
+        {
+            "name": "decimal_col",
+            "type": "decimal(5,3)",
+            "description": "Test decimal column"
+        }
+    ],
+    "location": "lookup/"
+}
