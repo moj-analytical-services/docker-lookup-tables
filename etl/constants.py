@@ -9,7 +9,9 @@ DATA_DIR = os.path.join(SOURCE_DIR, DATA_SUBDIR)
 BUCKET_NAME = os.environ.get("BUCKET_NAME", "moj-analytics-lookup-tables")
 GITHUB_REPO = os.environ.get("GITHUB_REPO", "lookup_testing_repo")
 
-if os.path.isfile("release/tag"):
+if os.environ.get("RELEASE_TAG"):
+    RELEASE = os.environ.get("RELEASE_TAG")
+elif os.path.isfile("release/tag"):
     with open("release/tag") as f:
         RELEASE = f.readline()
 else:

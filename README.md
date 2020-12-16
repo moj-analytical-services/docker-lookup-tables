@@ -62,16 +62,54 @@ Note that the bucket will not be moj-analytics-lookup-tables if you speficied a 
 
 These files in raw can be read directly from S3 if you do not wish to use the database versions of your lookup tables. 
 
-## Testing
+
+## Running Locally 
+
+To build locally: 
+
+```bash
+docker build -t docker-lookup-tables:test . 
+```
+
+### Testing
 
 You can test the structure of your lookup repo with the following docker command:
 
 ```bash
+# you can point to your local build or directly to the image on the ECR instance
 docker run \
     -e SOURCE_DIR=/source \
     -v data:/source/data \
     -v meta:/source/meta \
     --entrypoint "" \
-    quay.io/mojanalytics/lookup-tables-etl:latest \
+    docker-lookup-tables:test \
     pytest /tests/test_data.py
+```
+
+To just test on your own python:
+
+```bash
+python -m venv env
+source env/bin/activate
+pytest tests/
+```
+
+### Running manually
+
+You will need to make sure you have AWS admin priveledges in your environment and have docker installed.
+
+To ensure you're setup correctly please refer to [this guidance]() on setting up Docker and EC2.
+
+Clone their lookup repo and checkout the release they want to deploy. Once in the root dir of that repo and the correct release is checked out you can run:
+
+```bash
+docker run \
+  -e RELEASE_TAG=$(git describe --tags) \
+  -e GITHUB_REPO=$(basename `git rev-parse --show-toplevel`) \
+  -e AWS_REGION=$AWS_REGION \
+  -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+  -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+  -e AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN \
+  -v ${PWD}/data:/etl/data \
+  593291632749.dkr.ecr.eu-west-1.amazonaws.com/docker-lookup-tables:<latest-release> # Note need to change latest-release
 ```

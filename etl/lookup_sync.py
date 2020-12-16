@@ -40,6 +40,9 @@ def define_data_meta_path(basepath, table_name, data=True):
 
 def read_csv_write_to_parquet(local_data_path, s3_path, local_meta_path):
 
+    if s3_path.startswith("s3://"):
+        s3_path = s3_path.replace("s3://", "", 1)
+
     local = fs.LocalFileSystem()
     s3 = fs.S3FileSystem(region=REGION)
     with local.open_input_stream(local_data_path) as f:
@@ -54,7 +57,7 @@ def read_csv_write_to_parquet(local_data_path, s3_path, local_meta_path):
     s = pa.schema(arrow_cols)
     tab = tab.cast(s)
 
-    with s3.open_input_stream(s3_path) as f:
+    with s3.open_output_stream(s3_path) as f:
         pq.write_table(tab, f)
 
 
@@ -62,14 +65,13 @@ def convert_meta_col_to_arrow_tuple(col):
 
     schema_convert = {
         "character": pa.string,
-        "int": pa.int64,
+        "int": pa.int32,
         "long": pa.int64,
-        "float": pa.float64,
+        "float": pa.float32,
         "double": pa.float64,
         "date": pa.date64,
         "boolean": pa.bool_,
         "binary": pa.binary,
-        "decimal": None,
     }
 
     if col["type"].startswith("decimal"):
