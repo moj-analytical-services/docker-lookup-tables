@@ -62,8 +62,7 @@ Note that the bucket will not be moj-analytics-lookup-tables if you speficied a 
 
 These files in raw can be read directly from S3 if you do not wish to use the database versions of your lookup tables. 
 
-
-## Running Locally 
+## Running Locally
 
 To build locally: 
 
