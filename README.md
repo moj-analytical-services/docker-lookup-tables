@@ -78,9 +78,6 @@ You can test the structure of your lookup repo with the following docker command
 ```bash
 # you can point to your local build or directly to the image on the ECR instance
 docker run \
-    -e SOURCE_DIR=/source \
-    -v data:/source/data \
-    -v meta:/source/meta \
     --entrypoint "" \
     docker-lookup-tables:test \
     pytest /tests/test_data.py
