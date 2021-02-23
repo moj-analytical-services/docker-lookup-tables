@@ -94,7 +94,7 @@ pytest tests/
 
 You will need to make sure you have AWS admin priveledges in your environment and have docker installed.
 
-To ensure you're setup correctly please refer to [this guidance]() on setting up Docker and EC2.
+To ensure you're setup correctly please refer to [this guidance](https://github.com/moj-analytical-services/data-engineering/wiki/using-docker-and-ecr) on setting up Docker and ECR.
 
 Clone their lookup repo and checkout the release they want to deploy. Once in the root dir of that repo and the correct release is checked out you can run:
 
